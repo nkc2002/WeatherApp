@@ -1,0 +1,134 @@
+<%- include('partials/header') %>
+
+<div class="container mx-auto px-4 py-12 min-h-screen flex flex-col justify-center items-center">
+    <!-- Header -->
+    <div class="text-center mb-12 fade-in">
+        <div class="inline-block relative">
+            <div class="absolute inset-0 bg-white/20 blur-xl rounded-full transform scale-150"></div>
+            <i class="fas fa-cloud-sun-rain text-7xl text-white float-animation relative z-10 drop-shadow-lg"></i>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-bold text-white mt-6 mb-2 text-shadow tracking-tight">
+            Weather Forecast
+        </h1>
+        <p class="text-blue-100 text-lg md:text-xl font-light tracking-wide">
+            Khám phá thời tiết thế giới trong tầm tay
+        </p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="w-full max-w-xl fade-in delay-100">
+        <div class="glass rounded-[2.5rem] p-8 md:p-10 transform hover:scale-[1.01] transition-all duration-500">
+            <h2 class="text-2xl font-bold text-white text-center mb-8 flex items-center justify-center gap-3">
+                <i class="fas fa-search-location"></i>
+                <span>Tìm kiếm thành phố</span>
+            </h2>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="mb-6 bg-red-500/20 border border-red-500/30 p-4 rounded-2xl backdrop-blur-sm animate-pulse">
+                    <div class="flex items-center text-white">
+                        <i class="fas fa-exclamation-circle text-xl mr-3"></i>
+                        <p class="font-medium"><%= error %></p>
+                    </div>
+                </div>
+            <% } %>
+
+            <form id="weatherForm" class="space-y-6">
+                <div class="relative group">
+                    <i class="fas fa-city absolute left-5 top-1/2 transform -translate-y-1/2 text-white/60 text-lg group-hover:text-white transition-colors"></i>
+                    <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        placeholder="Nhập tên thành phố (VD: Hanoi)..."
+                        class="w-full pl-14 pr-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 focus:ring-0 outline-none transition-all duration-300 text-lg font-medium backdrop-blur-md"
+                        required
+                        autofocus
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <button
+                        type="button"
+                        onclick="searchWeather('current')"
+                        class="group relative w-full bg-gradient-to-br from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                    >
+                        <div class="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out skew-x-12"></div>
+                        <div class="relative flex items-center justify-center gap-2">
+                            <i class="fas fa-cloud-sun"></i>
+                            <span>Xem hiện tại</span>
+                        </div>
+                    </button>
+                    <button
+                        type="button"
+                        onclick="searchWeather('forecast')"
+                        class="group relative w-full bg-gradient-to-br from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg hover:shadow-cyan-500/30 transform hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                    >
+                        <div class="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out skew-x-12"></div>
+                        <div class="relative flex items-center justify-center gap-2">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>Dự báo 5 ngày</span>
+                        </div>
+                    </button>
+                </div>
+            </form>
+
+            <script>
+            function searchWeather(type) {
+                const city = document.getElementById('city').value;
+                if (!city) {
+                    // Custom toast or subtle alert could be better, but native alert is fine for now
+                    const input = document.getElementById('city');
+                    input.classList.add('ring-2', 'ring-red-400', 'bg-red-400/10');
+                    setTimeout(() => input.classList.remove('ring-2', 'ring-red-400', 'bg-red-400/10'), 1000);
+                    input.focus();
+                    return;
+                }
+                const url = type === 'current' ? '/weather' : '/forecast';
+                window.location.href = `${url}?city=${encodeURIComponent(city)}`;
+            }
+            
+            // Allow Enter key to submit default (current weather)
+            document.getElementById('city').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchWeather('current');
+                }
+            });
+            </script>
+
+            <!-- Quick Search Suggestions -->
+            <div class="mt-8 pt-6 border-t border-white/10">
+                <p class="text-sm text-blue-100 mb-4 text-center font-medium">
+                    <i class="fas fa-magic mr-1"></i>
+                    Địa điểm phổ biến
+                </p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <% const cities = [
+                        { name: 'Hà Nội', val: 'Hanoi' },
+                        { name: 'TP. HCM', val: 'Ho Chi Minh' },
+                        { name: 'Đà Nẵng', val: 'Da Nang' },
+                        { name: 'Tokyo', val: 'Tokyo' },
+                        { name: 'Seoul', val: 'Seoul' },
+                        { name: 'London', val: 'London' }
+                    ] %>
+                    <% cities.forEach(c => { %>
+                        <a href="/weather?city=<%= c.val %>" 
+                           class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full text-sm transition-all duration-300 border border-white/5 hover:border-white/30 backdrop-blur-sm">
+                            <%= c.name %>
+                        </a>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer info -->
+    <div class="mt-12 text-blue-200/60 text-sm font-light fade-in delay-200">
+        © 2025 Weather App • Design with <i class="fas fa-heart text-pink-400 mx-1"></i> by You
+    </div>
+</div>
+
+<!-- Removed default footer include to keep the landing page clean and full-height centered -->
+</body>
+</html>
