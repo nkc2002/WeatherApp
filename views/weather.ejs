@@ -38,6 +38,22 @@
           <%= new Date().toLocaleDateString('vi-VN', { weekday: 'long', year:
           'numeric', month: 'long', day: 'numeric' }) %>
         </p>
+
+        <!-- Current Local Time -->
+        <div class="mt-4 inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20">
+          <i class="fas fa-clock text-2xl text-cyan-300"></i>
+          <div class="text-left">
+            <p class="text-xs text-white/70 uppercase tracking-wider">Giờ địa phương</p>
+            <%
+              const now = new Date();
+              const localTime = new Date((now.getTime() / 1000 + weather.timezone) * 1000);
+              const localHours = String(localTime.getUTCHours()).padStart(2, '0');
+              const localMinutes = String(localTime.getUTCMinutes()).padStart(2, '0');
+              const localSeconds = String(localTime.getUTCSeconds()).padStart(2, '0');
+            %>
+            <p class="text-2xl font-bold text-white" id="localTime"><%= localHours %>:<%= localMinutes %>:<%= localSeconds %></p>
+          </div>
+        </div>
       </div>
 
       <!-- Main Weather Info -->
@@ -216,6 +232,49 @@
           </div>
         </div>
 
+        <!-- Hourly Forecast -->
+        <div class="mt-8 bg-black/10 rounded-3xl p-6 md:p-8 backdrop-blur-sm border border-white/5">
+          <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+            <i class="fas fa-clock opacity-70"></i>
+            Dự báo theo giờ
+          </h3>
+          
+          <!-- Hourly Cards -->
+          <div class="flex gap-3 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+            <% hourlyForecasts.forEach((forecast, index) => { 
+              const forecastTime = new Date((forecast.dt + weather.timezone) * 1000);
+              const forecastHour = String(forecastTime.getUTCHours()).padStart(2, '0');
+              const forecastMinute = String(forecastTime.getUTCMinutes()).padStart(2, '0');
+            %>
+            <div class="flex-shrink-0 w-24 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 hover:bg-white/20 transition-all duration-300 text-center">
+              <p class="text-sm text-blue-100 mb-2 font-medium">
+                <%= index === 0 ? 'Bây giờ' : forecastHour + ':' + forecastMinute %>
+              </p>
+              <img 
+                src="http://openweathermap.org/img/wn/<%= forecast.icon %>@2x.png" 
+                alt="<%= forecast.description %>"
+                class="w-12 h-12 mx-auto"
+              />
+              <p class="text-xl font-bold text-white"><%= forecast.temp %>°</p>
+              <div class="mt-2 text-xs text-blue-100 space-y-1">
+                <p><i class="fas fa-tint mr-1"></i><%= forecast.humidity %>%</p>
+              </div>
+            </div>
+            <% }); %>
+          </div>
+
+          <!-- Temperature Chart -->
+          <div class="mt-6">
+            <h4 class="text-sm font-medium text-blue-100 mb-4 flex items-center gap-2">
+              <i class="fas fa-chart-line"></i>
+              Biểu đồ nhiệt độ 24h
+            </h4>
+            <div class="relative h-40 bg-white/5 rounded-2xl p-4 border border-white/10">
+              <canvas id="tempChart"></canvas>
+            </div>
+          </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="mt-10 flex flex-wrap gap-4 justify-center">
           <a
@@ -230,5 +289,106 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Real-time clock update
+  const timezone = <%= weather.timezone %>;
+  function updateLocalTime() {
+    const now = new Date();
+    const localTime = new Date((now.getTime() / 1000 + timezone) * 1000);
+    const hours = String(localTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(localTime.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(localTime.getUTCSeconds()).padStart(2, '0');
+    document.getElementById('localTime').textContent = `${hours}:${minutes}:${seconds}`;
+  }
+  setInterval(updateLocalTime, 1000);
+
+  // Temperature Chart
+  const hourlyData = <%- JSON.stringify(hourlyForecasts) %>;
+  const labels = hourlyData.map((item, index) => {
+    if (index === 0) return 'Bây giờ';
+    const time = new Date((item.dt + timezone) * 1000);
+    return String(time.getUTCHours()).padStart(2, '0') + ':00';
+  });
+  const temps = hourlyData.map(item => item.temp);
+
+  const ctx = document.getElementById('tempChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+  gradient.addColorStop(0, 'rgba(56, 189, 248, 0.5)');
+  gradient.addColorStop(1, 'rgba(56, 189, 248, 0.0)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Nhiệt độ (°C)',
+        data: temps,
+        borderColor: 'rgba(56, 189, 248, 1)',
+        backgroundColor: gradient,
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: 'rgba(255, 255, 255, 1)',
+        pointBorderColor: 'rgba(56, 189, 248, 1)',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: 'rgba(56, 189, 248, 0.5)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: function(context) {
+              return context.parsed.y + '°C';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)',
+            drawBorder: false
+          },
+          ticks: {
+            color: 'rgba(255, 255, 255, 0.7)',
+            font: {
+              size: 11
+            }
+          }
+        },
+        y: {
+          grid: {
+            color: 'rgba(255, 255, 255, 0.1)',
+            drawBorder: false
+          },
+          ticks: {
+            color: 'rgba(255, 255, 255, 0.7)',
+            font: {
+              size: 11
+            },
+            callback: function(value) {
+              return value + '°';
+            }
+          }
+        }
+      }
+    }
+  });
+</script>
 
 <%- include('partials/footer') %>

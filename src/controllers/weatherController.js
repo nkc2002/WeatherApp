@@ -29,21 +29,43 @@ exports.getWeather = async (req, res) => {
       });
     }
 
-    // Call OpenWeather API
-    const response = await axios.get(BASE_URL, {
-      params: {
-        q: city,
-        appid: API_KEY,
-        units: 'metric',
-        lang: 'vi'
-      }
-    });
+    // Call OpenWeather API for current weather and hourly forecast
+    const [weatherResponse, forecastResponse] = await Promise.all([
+      axios.get(BASE_URL, {
+        params: {
+          q: city,
+          appid: API_KEY,
+          units: 'metric',
+          lang: 'vi'
+        }
+      }),
+      axios.get(FORECAST_URL, {
+        params: {
+          q: city,
+          appid: API_KEY,
+          units: 'metric',
+          lang: 'vi'
+        }
+      })
+    ]);
 
-    const weather = response.data;
+    const weather = weatherResponse.data;
+    const forecastData = forecastResponse.data;
+
+    // Get next 8 forecasts (24 hours, each 3 hours apart)
+    const hourlyForecasts = forecastData.list.slice(0, 8).map(item => ({
+      dt: item.dt,
+      temp: Math.round(item.main.temp),
+      icon: item.weather[0].icon,
+      description: item.weather[0].description,
+      humidity: item.main.humidity,
+      wind_speed: Math.round(item.wind.speed * 3.6)
+    }));
 
     res.render('weather', {
       title: `Thời tiết ${weather.name} - Weather App`,
-      weather
+      weather,
+      hourlyForecasts
     });
 
   } catch (error) {
